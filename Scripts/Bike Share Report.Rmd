@@ -1,0 +1,248 @@
+---
+title: "Cyclistic Bike-Share: Strategy to Convert Casual Riders to Annual Members"
+author: "Mr Matthew Ternenge Beeun"
+date: "`r Sys.Date()`"
+output: html_document
+toc: true
+toc_depth: 3
+theme: spacelab
+---
+
+# load the packages into r studio
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(lubridate)
+library(readxl)
+library(rmarkdown)
+```
+
+
+# **Executive Summary**
+This report summarizes the analysis of Cyclistic's historical trip data, focusing on behavioral differences between Annual Members and Casual Riders. The goal is to provide data-driven recommendations to maximize annual memberships, which are considered crucial for the company's future profitability.
+
+The core finding is that Annual Members use the service as a utility for commuting, while Casual Riders use it for leisure and recreation.
+
+## **Top 3 Actionable Recommendations (Act Phase):**
+
+1. **Introduce a "Weekend Pass" or "Leisure Membership":** Target the casual riders' existing long, expensive weekend usage with a specialized, discounted membership to increase conversion with minimal friction.
+
+2. **Implement Real-Time Cost-Saving Communication:** Use the mobile app to show casual riders their immediate, projected savings after a long, expensive trip to encourage immediate membership purchase.
+
+3. **Geo-Target Promotions at Leisure Hubs:** Focus advertising efforts at high-casual-volume, tourist-centric stations during peak summer and weekend hours.
+
+
+## import the data for cleaning and analysis
+```{r Bike share}
+divvy_2019_q1 <- read_excel("C:\\Users\\Mr Matthew\\Desktop\\portfolio\\Bike Share Case Study\\Datasets\\Divvy_Trips_2019_Q1.xlsx")
+
+### second dataset
+divvy_2020_q1 <- read_excel("C:\\Users\\Mr Matthew\\Desktop\\portfolio\\Bike Share Case Study\\Datasets\\Divvy_Trips_2020_Q1.xlsx")
+
+
+```
+
+
+## **1. Ask: Business Task & Key Questions**
+The Director of Marketing, Lily Moreno, believes maximizing annual memberships is key to the company's success.
+
+## **Business Task**
+
+The objective is to analyze how annual members and casual riders use Cyclistic bikes differently, and use these insights to design a marketing strategy aimed at converting casual riders into annual members.
+
+## Project Overview:
+-- **Goal:** Understand how Casual Riders and Annual Members use Cyclistic Bikes                    differently.
+-- **Stakeholders:** Director of Marketing: Lily Moreno, Cyclistic Marketing Analyst                Team, Cyclistic Executive Team.
+-- **Data Sources:** Historical public data from Divvy, the name of the Chicago Bike                Share System operated by Lift. Data: divvy_2019_q1 and divvy_2019_q1
+-- **Tools Used:** Adobe software for the file, Google Sheet, R-Studio
+
+## **Guiding Questions**
+
+1. How do annual members and casual riders use Cyclistic bikes differently?
+2. Why would casual riders buy Cyclistic annual memberships?
+3. How can Cyclistic use digital media to influence casual riders to become members?
+
+## ** 2. Prepare & Process: Data Methodology**
+
+The analysis used Cyclistic’s historical trip data for the past 12 months. This data is public and anonymized, ensuring privacy.
+
+-- **Data Cleaning and Transformation**
+
+The raw data required significant processing to ensure accuracy and consistency:
+
+-- **Data Consolidation:**
+Individual monthly files were merged into a single, comprehensive dataset.
+
+-- **Data Consistency:**
+Rider types were standardized: 'Subscriber' and 'member' were unified as 'Annual Member'; 'Customer' and 'casual' were unified as 'Casual Rider'.
+
+
+-- **Feature Engineering:**
+
+-- The **ride_length** (trip duration) was calculated from started_at and ended_at timestamps.
+
+-- New fields for **day_of_week** and month were extracted to analyze temporal trends.
+
+-- **Outlier Removal:** 
+Rides with a duration of 0 seconds or rides exceeding 24 hours (likely quali**ty assurance or maintenance issues) were removed to prevent skewing the average duration metrics.
+
+
+## **3. Analyze: Key Findings and Insights**
+The descriptive analysis confirmed distinct differences in usage patterns, supporting the development of separate user personas.
+
+## Cleaned and ready use data for analysis
+```{r}
+glimpse(davvy_clean_cyclistic_ready_data)
+```
+
+```{r}
+# Example of creating a data frame to hold summary metrics
+
+davvy_summary_stats_2 <- davvy_clean_cyclistic_ready_data %>%
+  group_by(rider_type) %>%
+  summarize(
+    # 1. Total Number of Rides (Volume)
+    number_of_rides = n(),
+    
+    # 2. Average Ride Length
+    average_duration_mins = round(mean(ride_length), 4),
+    
+    # 3. Median Ride Length
+    median_duration_mins = round(median(ride_length), 4),
+    
+    # 4. Maximum Ride Length
+    max_duration_mins = round(max(ride_length), 4)
+  )
+print(davvy_summary_stats_2)
+```
+
+## Supporting visuals for the descriptive analysis key findings
+```{r}
+# Plotting a supporting visual for the key findings
+ggplot(davvy_summary_stats_2, aes(x = rider_type, y = number_of_rides, fill = rider_type)) +
+  # Create the bar chart
+  geom_bar(stat = "identity", position = "dodge") + 
+  
+  # Add the value labels on top of the bars
+  geom_text(aes(label = format(number_of_rides, big.mark = ",")), 
+            vjust = -0.5, size = 4) +
+  
+  # Apply professional labels and title
+  labs(
+    title = "Total Number of Trips (Q1 2019 & 2020 Combined)",
+    subtitle = "Annual Members use the service more frequently for routine travel.",
+    x = "Rider Type",
+    y = "Total Number of Rides",
+    fill = "Rider Type"
+  ) +
+  # Clean up the theme for better readability
+  theme_minimal() +
+  # Rotate axis text if names are long
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5)) +
+  # Remove the y-axis line to focus on the bar height
+  scale_y_continuous(labels = scales::comma)
+
+
+```
+
+## Average usage comparisms
+```{r}
+ggplot(davvy_summary_stats_2, aes(x = rider_type, y = average_duration_mins, fill = rider_type)) +
+  # Create the bar chart
+  geom_bar(stat = "identity", position = "dodge") + 
+  
+  # Add the value labels on top of the bars, rounding to 1 decimal place for presentation
+  geom_text(aes(label = round(average_duration_mins, 1)), 
+            vjust = -0.5, size = 4) +
+  
+  # Apply professional labels and title
+  labs(
+    title = "Average Trip Duration by Rider Type",
+    subtitle = "Casual Riders take trips that are significantly longer than Annual Members.",
+    x = "Rider Type",
+    y = "Average Ride Duration (Minutes)",
+    fill = "Rider Type"
+  ) +
+  # Clean up the theme
+  theme_minimal() +
+  # Customize colors (optional, but good for reporting)
+  scale_fill_manual(values = c("Casual Rider" = "orange", "Annual Member" = "steelblue"))
+
+
+```
+-- **Insight:** The disparity in average ride length strongly suggests members use the service for short commutes, while casual riders prioritize long-form leisure trips.
+
+2. **Temporal Usage Patterns**
+Analyzing the data by the day of the week reveals when each group is riding.
+
+```{r}
+# Assuming 'rider_type' and 'day_of_week' columns exist in 'clean_cyclistic_data'
+
+davvy_daily_analysis <- davvy_clean_cyclistic_ready_data %>%
+  group_by(rider_type, day_of_week) %>%
+  summarize(
+    total_rides = n(),
+    average_duration_mins = round(mean(ride_length), 4)
+  ) %>%
+  ungroup() # Essential to remove grouping before the next step
+
+print(davvy_daily_analysis)
+
+```
+## Supporting visuals for the temporal daily rides
+```{r}
+ggplot(davvy_daily_analysis, aes(x = day_of_week, y = total_rides, fill = rider_type)) +
+  geom_col(position = "dodge") + # 'dodge' separates the bars for comparison
+  labs(
+    title = "Total Rides by Day of Week",
+    subtitle = "Members use bikes for commuting (weekday focus); Casuals for leisure (weekend spike).",
+    x = "Day of Week",
+    y = "Total Rides",
+    fill = "Rider Type"
+  ) +
+  theme_minimal() +
+  scale_y_continuous(labels = scales::comma)
+
+```
+
+
+
+-- **Insight:** Members demonstrate a clear weekday commuting pattern, while casual riders' usage peaks significantly on the weekends.
+
+### Average Ride Duration by Day of Week
+```{r}
+ggplot(davvy_daily_analysis, aes(x = day_of_week, y = average_duration_mins, fill = rider_type)) +
+  geom_col(position = "dodge") + # 'dodge' separates the bars for comparison
+  labs(
+    title = "Average Duration by Day of Week",
+    subtitle = "Casual Riders have Longer trips daily.",
+    x = "Day of Week",
+    y = "average_duration_mins",
+    fill = "Rider Type"
+  ) +
+  theme_minimal() +
+  scale_y_continuous(labels = scales::comma)
+
+```
+
+-- **Insight:** While casual riders take longer rides every day, their trip duration reaches its maximum on weekends, further solidifying the use case as primarily leisure and recreation.
+
+
+## **4. Act: Top Three Recommendations**
+The marketing strategy must target the unique behavioral characteristics of the Casual Rider (long, weekend, leisure use).
+
+###**Recommendation 1: Introduce a "Weekend Pass" or "Leisure Membership"**
+-- **Action:** Develop a new, attractively priced membership tier focused on recreational use, such as a "Cyclistic Weekend Warrior Pass" or a "Monthly Leisure Plan." This plan offers unlimited rides on Friday evening through Sunday for a low flat fee.
+**Justification:** This meets the casual rider where they are. It converts their highest-volume, highest-cost activity (long weekend trips) into a cost-saving membership, providing an easy on-ramp to full annual membership.
+
+###**Recommendation 2: Implement Real-Time Cost-Saving Communication**
+-- **Action:** Use digital media (app notification or immediate post-ride email) to show casual riders the financial benefit of membership right after they complete an expensive, pay-per-ride trip.
+**Justification:** By calculating the exact amount they would have saved on that specific trip with an annual membership (e.g., "You just spent $18. You could have saved $14 with a membership!"), we create an immediate, tangible incentive for conversion, leveraging the pain point of high occasional cost.
+
+###**Recommendation 3: Geo-Targeted Promotions at Leisure Hubs**
+--**Action:** Identify the top 5-10 start and end stations predominantly used by casual riders (often tourist attractions, parks, and entertainment districts) and dedicate enhanced marketing efforts at these locations.
+**Justification:** Promotions should be deployed in the summer months and on weekends, utilizing eye-catching physical signage and location-aware digital ads that speak directly to the tourist/leisure mindset: "Explore longer, save more. Convert today!" This ensures the marketing message reaches the target audience at the optimal time and place.
+
+## Conclusion
+The analysis clearly demonstrates that Casual Riders operate on a recreational model, whereas Annual Members operate on a utility model. By strategically targeting the Casual Riders' preference for long, weekend-based leisure riding with tailored, value-driven membership products and conversion messaging, Cyclistic can effectively maximize the conversion rate and secure the more profitable Annual Member segment.
